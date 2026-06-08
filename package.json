@@ -1,0 +1,35 @@
+{
+  "name": "desktop-pet",
+  "version": "0.1.0",
+  "description": "Electron + React/Vite desktop pet.",
+  "private": true,
+  "main": ".vite/build/main.js",
+  "scripts": {
+    "dev": "electron-forge start",
+    "start": "electron-forge start",
+    "build": "tsc --noEmit && electron-forge package",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
+    "@electron-forge/maker-squirrel": "^7.11.2",
+    "@electron-forge/maker-zip": "^7.11.2",
+    "@electron-forge/plugin-vite": "^7.11.2",
+    "electron": "^42.3.3",
+    "@types/node": "^20.14.8",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.5.2",
+    "vite": "^7.0.0"
+  }
+}
