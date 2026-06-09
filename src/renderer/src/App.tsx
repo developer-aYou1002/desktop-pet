@@ -1,6 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 
 type PetMood = 'idle' | 'happy' | 'sleepy';
+
+type DragState = {
+  pointerId: number;
+  startScreenX: number;
+  startScreenY: number;
+  hasMoved: boolean;
+};
+
+const DRAG_CLICK_THRESHOLD = 4;
 
 const moodLabels: Record<PetMood, string> = {
   idle: '待机',
@@ -17,6 +26,9 @@ const moodFaces: Record<PetMood, string> = {
 const App = () => {
   const [mood, setMood] = useState<PetMood>('idle');
   const [appVersion, setAppVersion] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStateRef = useRef<DragState | null>(null);
+  const shouldIgnoreClickRef = useRef(false);
 
   const statusText = useMemo(() => {
     return `当前状态：${moodLabels[mood]}`;
@@ -28,7 +40,69 @@ const App = () => {
     });
   }, []);
 
+  const handlePetPointerDown = (event: PointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startScreenX: event.screenX,
+      startScreenY: event.screenY,
+      hasMoved: false
+    };
+    setIsDragging(true);
+    window.desktopPet.startWindowDrag({
+      screenX: event.screenX,
+      screenY: event.screenY
+    });
+  };
+
+  const handlePetPointerMove = (event: PointerEvent<HTMLElement>) => {
+    const dragState = dragStateRef.current;
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const distanceX = Math.abs(event.screenX - dragState.startScreenX);
+    const distanceY = Math.abs(event.screenY - dragState.startScreenY);
+
+    if (distanceX + distanceY > DRAG_CLICK_THRESHOLD) {
+      dragState.hasMoved = true;
+    }
+
+    window.desktopPet.moveWindowDrag({
+      screenX: event.screenX,
+      screenY: event.screenY
+    });
+  };
+
+  const finishPetDrag = (event: PointerEvent<HTMLElement>) => {
+    const dragState = dragStateRef.current;
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return;
+    }
+
+    shouldIgnoreClickRef.current = dragState.hasMoved;
+    dragStateRef.current = null;
+    setIsDragging(false);
+    window.desktopPet.endWindowDrag();
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
   const handleMoodChange = () => {
+    if (shouldIgnoreClickRef.current) {
+      shouldIgnoreClickRef.current = false;
+      return;
+    }
+
     setMood((currentMood) => {
       if (currentMood === 'idle') {
         return 'happy';
@@ -44,7 +118,14 @@ const App = () => {
 
   return (
     <main className="pet-shell">
-      <section className="pet-stage" aria-label="桌面宠物">
+      <section
+        className={isDragging ? 'pet-stage pet-stage-dragging' : 'pet-stage'}
+        aria-label="桌面宠物"
+        onPointerDown={handlePetPointerDown}
+        onPointerMove={handlePetPointerMove}
+        onPointerUp={finishPetDrag}
+        onPointerCancel={finishPetDrag}
+      >
         <button
           className="pet-avatar"
           type="button"
